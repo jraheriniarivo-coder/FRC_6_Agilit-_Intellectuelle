@@ -151,6 +151,11 @@
             .quiz-card { padding: 1.5rem; }
             .quiz-header h1 { font-size: 1.5rem; }
         }
+        @media (max-width: 640px) {
+    .question-block div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+}
     </style>
 </head>
 <body>
@@ -174,6 +179,56 @@
             </div>
 
             <form id="quiz-form">
+             <!-- Bloc d'informations apprenant -->
+<div class="question-block" style="border-left-color: var(--sapphire); background: #f8fbff;">
+    <div class="question-title" style="color: var(--sapphire); margin-bottom: 20px;">
+        <i class="fas fa-user-circle" style="margin-right: 8px;"></i>Informations apprenant
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+            <label for="nom-apprenant" style="font-weight: 600; font-size: 0.9rem; color: var(--text-medium); display: block; margin-bottom: 5px;">Nom complet *</label>
+            <input type="text" id="nom-apprenant" required placeholder="Ex: Jean Dupont" 
+                style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 0.95rem;">
+        </div>
+        <div>
+            <label for="matricule-apprenant" style="font-weight: 600; font-size: 0.9rem; color: var(--text-medium); display: block; margin-bottom: 5px;">Matricule *</label>
+            <input type="text" id="matricule-apprenant" required placeholder="Ex: MAT001" 
+                style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 0.95rem;">
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <label for="activite-apprenant" style="font-weight: 600; font-size: 0.9rem; color: var(--text-medium); display: block; margin-bottom: 5px;">Activité *</label>
+            <select id="activite-apprenant" required 
+                style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; background: white;">
+                <option value="">— Sélectionner —</option>
+                <option value="Service Client">Service Client</option>
+                <option value="Recouvrement">Recouvrement</option>
+                <option value="Back Office">Back Office</option>
+                <option value="Management">Management</option>
+                <option value="Autre">Autre</option>
+            </select>
+        </div>
+        <div>
+            <label for="bu-apprenant" style="font-weight: 600; font-size: 0.9rem; color: var(--text-medium); display: block; margin-bottom: 5px;">BU *</label>
+            <select id="bu-apprenant" required 
+                style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; background: white;">
+                <option value="">— Sélectionner —</option>
+                <option value="Retail">Retail</option>
+                <option value="Corporate">Corporate</option>
+                <option value="PME">PME</option>
+                <option value="Particuliers">Particuliers</option>
+                <option value="Autre">Autre</option>
+            </select>
+        </div>
+    </div>
+    
+    <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-light); font-style: italic;">
+        * Champs obligatoires pour la traçabilité de votre formation.
+    </p>
+</div>   
                 <!-- Question 1 -->
                 <div class="question-block" data-correct="B">
                     <div class="question-title">1. Face à une personne en colère, quelle est la première chose à faire selon le Repère 1 ?</div>
@@ -231,83 +286,133 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('quiz-form');
-            const btnValidate = document.getElementById('btn-validate');
-            const resultBox = document.getElementById('result-box');
+    document.addEventListener('DOMContentLoaded', () => {
+        // ⚠️ REMPLACE PAR L'URL DE TON FLUX POWER AUTOMATE
+        const POWER_AUTOMATE_URL = "https://default462b20ee8bb04c05b1fa6fdf72dca1.e3.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/03/workflows/5055a199e1844b36837ea16f2ebe8fb6/triggers/manual/paths/invoke?api-version=1";
 
-            // Gérer l'effet visuel de sélection
-            const labels = document.querySelectorAll('.option-label');
-            labels.forEach(label => {
-                label.addEventListener('click', () => {
-                    // Retirer la classe 'selected' des autres options du même groupe
-                    const name = label.querySelector('input').name;
-                    document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
-                        input.parentElement.classList.remove('selected');
-                    });
-                    // Ajouter la classe 'selected' à l'option cliquée
-                    label.classList.add('selected');
+        const form = document.getElementById('quiz-form');
+        const btnValidate = document.getElementById('btn-validate');
+        const resultBox = document.getElementById('result-box');
+
+        // Gérer l'effet visuel de sélection des réponses
+        const labels = document.querySelectorAll('.option-label');
+        labels.forEach(label => {
+            label.addEventListener('click', () => {
+                const name = label.querySelector('input').name;
+                document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+                    input.parentElement.classList.remove('selected');
                 });
+                label.classList.add('selected');
             });
+        });
 
-            // Validation
-            btnValidate.addEventListener('click', () => {
-                const questions = document.querySelectorAll('.question-block');
-                let score = 0;
-                let allAnswered = true;
+        // Validation + Envoi
+        btnValidate.addEventListener('click', async () => {
+            const questions = document.querySelectorAll('.question-block[data-correct]');
+            let score = 0;
+            let allAnswered = true;
+            const reponses = {};
 
-                questions.forEach((qBlock, index) => {
-                    const selectedInput = qBlock.querySelector('input[type="radio"]:checked');
-                    const feedback = qBlock.querySelector('.feedback');
-                    const correctAnswer = qBlock.getAttribute('data-correct');
+            // === 1. Vérification des champs apprenant ===
+            const nom = document.getElementById('nom-apprenant').value.trim();
+            const matricule = document.getElementById('matricule-apprenant').value.trim();
+            const activite = document.getElementById('activite-apprenant').value;
+            const bu = document.getElementById('bu-apprenant').value;
 
-                    if (!selectedInput) {
-                        allAnswered = false;
-                        return;
-                    }
+            if (!nom || !matricule || !activite || !bu) {
+                alert("Merci de renseigner toutes les informations apprenant (Nom, Matricule, Activité, BU) avant de valider.");
+                return;
+            }
 
-                    // Désactiver les inputs après validation
-                    const allInputs = qBlock.querySelectorAll('input[type="radio"]');
-                    allInputs.forEach(input => input.disabled = true);
+            // === 2. Vérification des réponses au quiz ===
+            questions.forEach((qBlock, index) => {
+                const selectedInput = qBlock.querySelector('input[type="radio"]:checked');
+                const feedback = qBlock.querySelector('.feedback');
+                const correctAnswer = qBlock.getAttribute('data-correct');
+                const questionName = `q${index + 1}`;
 
-                    // Afficher le feedback
-                    feedback.classList.add('show');
-                    
-                    if (selectedInput.value === correctAnswer) {
-                        score++;
-                        feedback.textContent = "Bonne réponse !";
-                        feedback.className = "feedback show success";
-                        selectedInput.parentElement.classList.add('correct');
-                    } else {
-                        feedback.textContent = "Réponse incorrecte.";
-                        feedback.className = "feedback show error";
-                        selectedInput.parentElement.classList.add('incorrect');
-                        
-                        // Mettre en évidence la bonne réponse
-                        qBlock.querySelector(`input[value="${correctAnswer}"]`).parentElement.classList.add('correct');
-                    }
-                });
-
-                if (!allAnswered) {
-                    alert("Veuillez répondre à toutes les questions avant de valider.");
+                if (!selectedInput) {
+                    allAnswered = false;
                     return;
                 }
 
-                // Afficher le résultat final
-                btnValidate.style.display = 'none';
-                resultBox.classList.add('show');
-                document.getElementById('score-display').textContent = `${score}/4`;
+                reponses[questionName] = selectedInput.value;
+
+                // Désactiver les inputs
+                qBlock.querySelectorAll('input[type="radio"]').forEach(input => input.disabled = true);
+                feedback.classList.add('show');
                 
-                const msg = document.getElementById('result-message');
-                if (score === 4) {
-                    msg.innerHTML = "<strong>Félicitations !</strong> Vous avez parfaitement compris les réflexes d'adaptation.";
-                } else if (score >= 2) {
-                    msg.innerHTML = "<strong>Bien joué.</strong> Vous avez les bases, mais relisez le module pour consolider certains points.";
+                if (selectedInput.value === correctAnswer) {
+                    score++;
+                    feedback.textContent = "Bonne réponse !";
+                    feedback.className = "feedback show success";
+                    selectedInput.parentElement.classList.add('correct');
                 } else {
-                    msg.innerHTML = "<strong>Il faut réviser.</strong> Ne vous inquiétez pas, relisez le module et retentez le quiz !";
+                    feedback.textContent = "Réponse incorrecte.";
+                    feedback.className = "feedback show error";
+                    selectedInput.parentElement.classList.add('incorrect');
+                    qBlock.querySelector(`input[value="${correctAnswer}"]`).parentElement.classList.add('correct');
                 }
             });
+
+            if (!allAnswered) {
+                alert("Veuillez répondre à toutes les questions avant de valider.");
+                return;
+            }
+
+            // === 3. Envoi vers Power Automate ===
+            btnValidate.disabled = true;
+            btnValidate.textContent = "Envoi en cours...";
+
+            const dataToSend = {
+                date: new Date().toLocaleString('fr-FR'),
+                nom: nom,
+                matricule: matricule,
+                activite: activite,
+                bu: bu,
+                score: score,
+                q1: reponses.q1,
+                q2: reponses.q2,
+                q3: reponses.q3,
+                q4: reponses.q4
+            };
+
+            try {
+                const response = await fetch(POWER_AUTOMATE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                if (response.ok) {
+                    // Désactiver les champs apprenant après envoi
+                    document.getElementById('nom-apprenant').disabled = true;
+                    document.getElementById('matricule-apprenant').disabled = true;
+                    document.getElementById('activite-apprenant').disabled = true;
+                    document.getElementById('bu-apprenant').disabled = true;
+
+                    btnValidate.style.display = 'none';
+                    resultBox.classList.add('show');
+                    document.getElementById('score-display').textContent = `${score}/4`;
+                    
+                    const msg = document.getElementById('result-message');
+                    let evaluation;
+                    if (score === 4) evaluation = "Félicitations, vous maîtrisez les réflexes d'adaptation !";
+                    else if (score >= 2) evaluation = "Bien joué, mais relisez le module pour consolider certains points.";
+                    else evaluation = "Il faut réviser. Relisez le module et retentez le quiz.";
+                    
+                    msg.innerHTML = `<strong>Résultats enregistrés pour ${nom} (${matricule}).</strong><br>${evaluation}`;
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert("Une erreur est survenue lors de l'envoi. Vérifiez votre connexion et réessayez.");
+                btnValidate.disabled = false;
+                btnValidate.textContent = "Valider mes réponses";
+            }
         });
-    </script>
+    });
+</script>
 </body>
 </html>
